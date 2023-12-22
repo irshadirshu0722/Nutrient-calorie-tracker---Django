@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home</title>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+      integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+      crossorigin="anonymous"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+          <nav class="navbar navbar-dark bg-primary">
+            <span class="navbar-brand">Calorie Tracker</span>
+          </nav>
+        </div>
+      </div>
+
+      <br /><br /><br />
+
+      <h4>Calorie Goal</h4>
+      <br />
+      <div class="row">
+        <div class="col-md-9 offset-1">
+          <div class="progress">
+            <div
+              class="progress-bar bg-success"
+              role="progressbar"
+              style="width: 50%"
+              aria-valuenow="0"
+              aria-valuemin="0"
+            ></div>
+          </div>
+        </div>
+      </div>
+      <br /><br />
+      <div class="row">
+        <div class="col-md-12 pt-4">
+          <form action="" method="post">
+            <div class="form-group d-flex">
+              {% csrf_token %}
+              <select
+                class="col-md-4 form-control"
+                name="food_consumed"
+                id="food_consumed"
+                required
+              >
+                <option value="" selected>Select Food item</option>
+                {% for food in foods %} {{food.name}}
+                <option value="{{food.name}}">{{food.name}}</option>
+                {% endfor %}
+              </select>
+              <button class="ml-3 btn btn-success" type="submit">Add</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-7">
+          <div>
+            <h4>Today's Consumption</h4>
+          </div>
+          <table id="table" class="table table-stripper table-primary">
+            <thead>
+              <tr class="bg-primary text-white">
+                <th>Food</th>
+                <th>Carbohydrates</th>
+                <th>Protein</th>
+                <th>Fats</th>
+                <th>Calories</th>
+                <th>Remove Item</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for consumed_food in consumed_foods %}
+              <tr>
+                <td>{{consumed_food.food_consumed.name}}</td>
+                <td>{{consumed_food.food_consumed.carbs}}</td>
+                <td>{{consumed_food.food_consumed.protein}}</td>
+                <td>{{consumed_food.food_consumed.fats}}</td>
+                <td>{{consumed_food.food_consumed.calories}}</td>
+                <td>
+                  <a
+                    href="{%url 'delete' consumed_food.id %}"
+                    class="btn btn-danger"
+                    >X</a
+                  >
+                </td>
+              </tr>
+              {% endfor %}
+
+              <tr>
+                <td id="name">
+                  <b>Total</b>
+                </td>
+                <td id="total_carbs"></td>
+                <td id="total_protien"></td>
+                <td id="total_fats"></td>
+                <td id="total_calories"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="col-xl-4">
+          <div>
+            <h4>Today's breakdown</h4>
+          </div>
+          <div class="card-header text-white bg-primary">
+            <h4>Macronutrients breakdown</h4>
+          </div>
+          <div class="col-md-12">
+            <canvas id="myChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const table = document.getElementById("table");
+      var carbs = 0,
+        protien = 0,
+        fats = 0,
+        calories = 0;
+
+      for (var i = 1; i < table.rows.length - 1; i++) {
+        // console.log(table.rows[i].cells[0].innerHTML);
+        carbs += parseFloat(table.rows[i].cells[1].innerHTML);
+        protien += parseFloat(table.rows[i].cells[2].innerHTML);
+        fats += parseFloat(table.rows[i].cells[3].innerHTML);
+        calories += parseFloat(table.rows[i].cells[4].innerHTML);
+      }
+
+      carbs = parseFloat(carbs.toFixed(2));
+      protien = parseFloat(protien.toFixed(2));
+      fats = parseFloat(fats.toFixed(2));
+      calories = parseFloat(calories.toFixed(2));
+      // adding row
+
+      document.getElementById("total_carbs").innerHTML =
+        "<b>" + carbs + "(gm)</b>";
+
+      document.getElementById("total_protien").innerHTML =
+        "<b>" + fats + "(gm)</b>";
+      document.getElementById("total_fats").innerHTML =
+        "<b>" + protien + "(gm)</b>";
+      document.getElementById("total_calories").innerHTML =
+        "<b>" + calories + "(gm)</b>";
+
+      var calPer = (calories / 2000) * 100;
+      const progressbar = document.getElementsByClassName("progress-bar")[0];
+      progressbar.setAttribute("style", `width:${calPer}%`);
+      progressbar.innerHTML = `${Math.round(calPer)}%`;
+      var total = carbs + protien + fats;
+      var carbsPer = Math.round((carbs / total) * 100);
+      var proteinPer = Math.round((protien / total) * 100);
+      var fatsPer = Math.round((fats / total) * 100);
+
+      const ctx = document.getElementById("myChart");
+
+      new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          labels: [
+            "Carbs" + carbsPer + "%",
+            "Protein" + proteinPer + "%",
+            "Fats" + fatsPer + "%",
+          ],
+          datasets: [
+            {
+              label: "# of Votes",
+              data: [carbsPer, proteinPer, fatsPer],
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+            },
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
